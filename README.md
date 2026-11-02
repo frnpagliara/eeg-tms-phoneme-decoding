@@ -15,7 +15,7 @@ Target question: can the place of articulation of the consonant (bilabial vs alv
 (Updating this on the go)
 
 What I've done so far:
-1) data inspection for one participant (sub-P01).
+1) Data inspection for one participant (sub-P01).
 
 Design of the phoneme task (from the events file)
 476 trials, 952 event rows: each trial has a TMS event followed by a stimulus event 50 ms later.
@@ -24,7 +24,7 @@ Last event onset at about 2933 s, while the recording lasts about 3287 s.
 Four TMS targets: lip, tongue, control_lip, control_tongue.
 Stimuli are consonant–vowel (CV, 237 trials) or vowel–consonant (VC, 239 trials) pairs made from four consonants (p, b, t, d) and five vowels (a, e, i, o, u).
 
-2) label construction.
+2) Label construction.
 
 The place and voicing columns in events.tsv do not describe the consonant in every trial. Cross-tabulating them against labels derived from the phoneme pair shows that they appear to reflect only the first phoneme: when the pair starts with a vowel, the trial defaults to "alveolar" / "no".
 
@@ -37,7 +37,8 @@ yes (112 trials)	112	0
 
 This is an inference I'm making from the counts, not from the dataset documentation (the accompanying events.json is generic and does not match the actual column values), so I rebuild the labels from phoneme1 and phoneme2 to balance the classes: place 248 bilabial vs 228 alveolar; voicing 234 voiced vs 242 voiceless; vowels 91–106 trials each. Within the two main TMS targets (lip, tongue), the two place classes are exactly equal.
 
-3) Inspection of the raw EEG file
+3) Inspection of the raw EEG file.
+
 2000 Hz sampling rate, 61 EEG channels plus one extra channel named Status, about 3287 s, no annotations in the EDF.
 The Status channel is not a usable trigger channel: it has a single transition near the very end of the recording. Timing therefore has to come from events.tsv, and its alignment with the EEG has to be verified from the TMS artefact in the signal itself.
 The EDF header reports filter settings (0.0 / 1000 Hz) that differ from the sidecar JSON (0.1 / 350 Hz). I have not yet resolved which is correct; the spectrum will be checked before relying on either.
