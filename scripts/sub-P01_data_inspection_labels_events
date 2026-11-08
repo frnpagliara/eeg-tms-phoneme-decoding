@@ -1,0 +1,104 @@
+# sub-P01, ses-01, task-phonemes - Events table, label reconstruction and timing
+# I'm trying to understand the experimental design from the events table
+
+import pandas as pd
+
+DATA_DIR = "."
+PREFIX = "sub-P01_ses-01_task-phonemes"
+EVENTS_FILE = f"{DATA_DIR}/{PREFIX}_events.tsv"
+LONG_GAP_S = 5.0
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", 200)
+
+
+# Events table and label reconstruction:
+# Each trial has a row with a 'TMS' event a 'stimulus' event about 50 ms later
+# but the columns 'place' and 'voicing' appear to describe only the first phoneme of the pair
+# I rebuilt the labels as 'phoneme1' /'phoneme2'.
+
+events = pd.read_csv(EVENTS_FILE, sep="\t")
+print("Rows, columns:", events.shape)
+print(events.trial_type.value_counts())
+
+tms = events[events.trial_type == "TMS"].reset_index(drop=True)
+stimulus = events[events.trial_type == "stimulus"].reset_index(drop=True)
+assert len(tms) == len(stimulus), "different number of TMS and stimulus rows"
+
+delay = stimulus.onset - tms.onset
+print("\nDelay stimulus - TMS (s):")
+print(delay.describe())
+assert (delay - 0.05).abs().max() < 0.01, "stimulus is not ~50 ms after TMS in every trial"
+assert (tms.tms_target == stimulus.tms_target).all()
+
+trials = pd.DataFrame({
+    "trial": tms.trial.astype(int),
+    "onset_tms": tms.onset,
+    "onset_stim": stimulus.onset,
+    "tms_target": tms.tms_target,
+    "ph1": stimulus.phoneme1,
+    "ph2": stimulus.phoneme2,
+    "place_col": tms.place,
+    "voicing_col": tms.voicing,
+})
+
+CONSONANTS = {
+    "p": ("bilabial", "voiceless"),
+    "b": ("bilabial", "voiced"),
+    "t": ("alveolar", "voiceless"),
+    "d": ("alveolar", "voiced"),
+}
+
+
+def parse_pair(row):
+    """Return consonant, vowel, order (CV/VC), place and voicing of the consonant."""
+    first_is_c = row.ph1 in CONSONANTS
+    second_is_c = row.ph2 in CONSONANTS
+    if first_is_c == second_is_c:
+        raise ValueError(f"Expected exactly one consonant in the pair: {row.ph1}-{row.ph2}")
+    cons, vowel, order = (row.ph1, row.ph2, "CV") if first_is_c else (row.ph2, row.ph1, "VC")
+    place, voicing = CONSONANTS[cons]
+    return pd.Series({"consonant": cons, "vowel": vowel, "order": order,
+                      "place": place, "voicing": voicing})
+
+
+trials = pd.concat([trials, trials.apply(parse_pair, axis=1)], axis=1)
+
+print("\nOriginal 'place' column (rows) vs consonant place rebuilt from the phonemes (columns):")
+print(pd.crosstab(trials.place_col, trials.place))
+print("\nOriginal 'voicing' column (rows) vs consonant voicing rebuilt from the phonemes (columns):")
+print(pd.crosstab(trials.voicing_col, trials.voicing))
+
+print("\nClass balance with the rebuilt labels")
+for col in ["place", "voicing", "order", "vowel"]:
+    print(f"\n{col}\n{trials[col].value_counts()}")
+print("\nTMS target x consonant place (number of trials)")
+print(pd.crosstab(trials.tms_target, trials.place))
+
+
+# Timing between trials and organisation of TMS targets:
+# Long gaps may be breaks between blocks and if blocks coincide with TMS targets,
+# maybe targets will be confounded with slow drifts of the signal, which would matter for cross-validation!
+
+
+trials = trials.sort_values("onset_tms").reset_index(drop=True)
+gap = trials.onset_tms.diff()
+print("Time between consecutive TMS pulses (s):")
+print(gap.describe())
+
+is_long = gap > LONG_GAP_S
+long_gaps = trials[is_long].copy()
+long_gaps["gap_s"] = gap[is_long]
+long_gaps["previous_target"] = trials.tms_target.shift(1)[is_long]
+print(f"\nGaps longer than {LONG_GAP_S} s: {is_long.sum()}")
+print(long_gaps[["trial", "onset_tms", "gap_s", "previous_target", "tms_target"]])
+
+print("\nTrial-number range per TMS target:")
+print(trials.groupby("tms_target").trial.agg(["min", "max", "count"]))
+
+run_id = (trials.tms_target != trials.tms_target.shift()).cumsum()
+runs = trials.groupby(run_id).agg(target=("tms_target", "first"),
+                                  first_trial=("trial", "min"),
+                                  last_trial=("trial", "max"),
+                                  n_trials=("trial", "size"))
+print(f"\nConsecutive runs of the same TMS target: {len(runs)}")
+print(runs.head(30))
