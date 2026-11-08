@@ -61,5 +61,5 @@ notebooks/      inspection and analysis notebooks
 src/            reusable functions (labels, epoching, decoding)
 requirements.txt
 
-Author
+Author:
 Francesca Pagliara
