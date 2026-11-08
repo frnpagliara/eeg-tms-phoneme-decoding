@@ -35,7 +35,7 @@ Original voicing	Consonant voiced	Consonant voiceless
 no (364 trials)	122	242
 yes (112 trials)	112	0
 
-This is an inference I'm making from the counts, not from the dataset documentation (the accompanying events.json is generic and does not match the actual column values), so I rebuild the labels from phoneme1 and phoneme2 to balance the classes: place 248 bilabial vs 228 alveolar; voicing 234 voiced vs 242 voiceless; vowels 91–106 trials each. Within the two main TMS targets (lip, tongue), the two place classes are exactly equal.
+This is an inference I'm making from the counts, not from the dataset documentation, because the accompanying events.json is generic and does not match the actual column values. So I rebuild the labels from phoneme1 and phoneme2 to balance the classes: place 248 bilabial vs 228 alveolar; voicing 234 voiced vs 242 voiceless; vowels 91–106 trials each. Within the two main TMS targets (lip, tongue), the two place classes are exactly equal.
 
 3) Inspection of the raw EEG file.
 
@@ -54,12 +54,3 @@ Planned next steps:
 - Validation with blocked cross-validation (not random shuffling);
 - Decoding within each TMS target separately, and checking that performance cannot be explained by the artefact or by TMS target;
 - Secondary questions: voicing, vowel identity, CV vs VC order, and whether decodability differs across TMS targets.
-
-Planned repository structure:
-README.md
-notebooks/      inspection and analysis notebooks
-src/            reusable functions (labels, epoching, decoding)
-requirements.txt
-
-Author:
-Francesca Pagliara
